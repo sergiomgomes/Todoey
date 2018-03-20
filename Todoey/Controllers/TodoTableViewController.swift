@@ -10,15 +10,12 @@ import UIKit
 
 class TodoTableViewController: UITableViewController {
 
-    var todoItems : [String] = []
+    var todoItems = [Item]()
     
     let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        if let items = defaults.array(forKey: "todoItems") as? [String]{
-            todoItems = items
-        }
     }
     
     //MARK - Tableview Datasource Methods
@@ -30,7 +27,10 @@ class TodoTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "todoItemCell", for: indexPath)
         
-        cell.textLabel?.text = todoItems[indexPath.row]
+        let item = todoItems[indexPath.row]
+        cell.textLabel?.text = item.title
+        
+        cell.accessoryType = item.done ? .checkmark : .none
         
         return cell
     }
@@ -38,13 +38,9 @@ class TodoTableViewController: UITableViewController {
     //MARK -TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        let cell = tableView.cellForRow(at: indexPath)
+        todoItems[indexPath.row].done = !todoItems[indexPath.row].done
         
-        if cell?.accessoryType == .checkmark {
-            cell?.accessoryType = .none
-        }else{
-            cell?.accessoryType = .checkmark
-        }
+        tableView.reloadData()
         
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -60,8 +56,9 @@ class TodoTableViewController: UITableViewController {
         let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (actionResult) in
-            self.todoItems.append(textField.text! != "" ? textField.text! : "New Item")
-            self.defaults.set(self.todoItems, forKey: "todoItems")
+            
+            self.todoItems.append(Item(title: textField.text! != "" ? textField.text! : "New Item", done: false))
+            
             self.tableView.reloadData()
         }
         
