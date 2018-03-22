@@ -9,17 +9,11 @@
 import UIKit
 import CoreData
 
-protocol CategoriesTableDelegate {
-    func getItems(category: Category)
-}
-
 class CategoriesTableViewController: UITableViewController {
     
     var categories = [Category]()
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    
-    var delegate: CategoriesTableDelegate?
 
     override func viewDidLoad() {
         super.viewDidLoad()
