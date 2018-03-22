@@ -7,17 +7,24 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoTableViewController: UITableViewController {
 
     var todoItems = [Item]()
     
-    let dataFilePath =  FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("TodoItems.plist")
+    var selectedCategory: Category?{
+        didSet{
+            loadTodoItems()
+        }
+    }
+    
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        loadTodoItems()
+        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
     }
     
     //MARK - Tableview Datasource Methods
@@ -40,6 +47,9 @@ class TodoTableViewController: UITableViewController {
     //MARK -TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
+//        context.delete(todoItems[indexPath.row])
+//        todoItems.remove(at: indexPath.row)
+        
         todoItems[indexPath.row].done = !todoItems[indexPath.row].done
         
         saveTodoItems()
@@ -59,7 +69,12 @@ class TodoTableViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (actionResult) in
             
-            self.todoItems.append(Item(title: textField.text! != "" ? textField.text! : "New Item", done: false))
+            let newItem = Item(context: self.context)
+            newItem.title = textField.text! != "" ? textField.text! : "New Item"
+            newItem.done = false
+            newItem.category = self.selectedCategory
+            
+            self.todoItems.append(newItem)
 
             self.saveTodoItems()
         }
@@ -73,27 +88,56 @@ class TodoTableViewController: UITableViewController {
         self.present(alert, animated: true, completion: nil)
     }
     
+    //MARK: - Model Manipulation Section
+    
     func saveTodoItems(){
-        let encoder = PropertyListEncoder()
-        
+
         do{
-            let data = try encoder.encode(self.todoItems)
-            try data.write(to: self.dataFilePath!)
+            try context.save()
         }catch{
-            print("ERROR encoding todo items array, \(error)")
+            print("Error saving context \(error)")
         }
         
         tableView.reloadData()
     }
     
-    func loadTodoItems(){
-        if let data = try? Data(contentsOf: dataFilePath!){
-            let decoder = PropertyListDecoder()
+    func loadTodoItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil){
+        
+        let categoryPredicate = NSPredicate(format: "category.name MATCHES %@", selectedCategory!.name!)
+        
+        if let additionalPredicate = predicate{
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        }else{
+            request.predicate = categoryPredicate
+        }
+        
+        do{
+            self.todoItems = try context.fetch(request)
+        }catch{
+            print("Error fetching data from context \(error)")
+        }
+        
+        tableView.reloadData()
+    }
+}
+
+//MARK: - Search Bar Methods
+extension TodoTableViewController : UISearchBarDelegate{
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        
+        loadTodoItems(with: request, predicate: predicate)
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0{
+            loadTodoItems()
             
-            do{
-                self.todoItems = try decoder.decode([Item].self, from: data)
-            }catch{
-                 print("ERROR decoding todo items array, \(error)")
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
             }
         }
     }
