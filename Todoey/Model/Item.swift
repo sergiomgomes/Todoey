@@ -15,5 +15,7 @@ class Item: Object {
     
     @objc dynamic var done: Bool = false
     
+    @objc dynamic var dateCreated: Date = Date()
+    
     var category = LinkingObjects(fromType: Category.self, property: "items")
 }
