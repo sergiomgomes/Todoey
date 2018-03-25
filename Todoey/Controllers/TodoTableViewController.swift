@@ -10,7 +10,7 @@ import UIKit
 import CoreData
 import RealmSwift
 
-class TodoTableViewController: UITableViewController {
+class TodoTableViewController: SwipeTableViewController {
 
     var todoItems: Results<Item>?
     
@@ -33,7 +33,7 @@ class TodoTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "todoItemCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         if let item = todoItems?[indexPath.row] {
             cell.textLabel?.text = item.title
@@ -46,6 +46,20 @@ class TodoTableViewController: UITableViewController {
     }
     
     //MARK -TableView Delegate Methods
+    override func delete(at indexPath: IndexPath){
+        if let item = self.todoItems?[indexPath.row]{
+            do{
+                try self.realm.write {
+                    self.realm.delete(item)
+                }
+            }catch{
+                print("Error trying to delete item \(error)")
+            }
+            
+            self.tableView.reloadData()
+        }
+    }
+    
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         if let item = todoItems?[indexPath.row] {
