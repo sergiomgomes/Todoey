@@ -6,5 +6,6 @@ target 'Todoey' do
 
   # Pods for Todoey
     pod 'RealmSwift', :inhibit_warnings => true
+    pod 'ChameleonFramework/Swift', :git => 'https://github.com/ViccAlexander/Chameleon.git'
 
 end

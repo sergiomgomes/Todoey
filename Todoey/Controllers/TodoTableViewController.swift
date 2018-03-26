@@ -9,6 +9,7 @@
 import UIKit
 import CoreData
 import RealmSwift
+import ChameleonFramework
 
 class TodoTableViewController: SwipeTableViewController {
 
@@ -22,11 +23,53 @@ class TodoTableViewController: SwipeTableViewController {
     
     let realm = try! Realm()
     
+    @IBOutlet weak var searchBar: UISearchBar!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        tableView.separatorStyle = .none
+        
+        tableView.rowHeight = 70
     }
     
-    //MARK - Tableview Datasource Methods
+    //Loaded up just before the user see's anything on the screen
+    override func viewWillAppear(_ animated: Bool) {
+        
+        title = selectedCategory?.name
+        
+        guard let colorHex = selectedCategory?.backgroundColor else{
+            fatalError("Selected Category is nil")
+        }
+        
+        updateNavBar(withHexCode: colorHex)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        updateNavBar(withHexCode: "1D9BF6")
+    }
+    
+    //MARK: - NavBar setup methods
+    func updateNavBar(withHexCode colorHexCode: String) {
+        
+        guard let navBar = navigationController?.navigationBar else{
+            fatalError("Navigation Controller does not exist!")
+        }
+        
+        guard let navBarColor = UIColor(hexString: colorHexCode) else{
+            fatalError("Color does not exist!")
+        }
+        
+        let constrastColor = ContrastColorOf(navBarColor, returnFlat: true)
+        
+        navBar.barTintColor = navBarColor
+        navBar.tintColor = constrastColor
+        navBar.largeTitleTextAttributes = [NSAttributedStringKey.foregroundColor : constrastColor]
+        
+        searchBar.barTintColor = navBarColor
+    }
+    
+    //MARK: - Tableview Datasource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return todoItems?.count ?? 1
@@ -35,12 +78,21 @@ class TodoTableViewController: SwipeTableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
-        if let item = todoItems?[indexPath.row] {
-            cell.textLabel?.text = item.title
-            cell.accessoryType = item.done ? .checkmark : .none
-        }else{
-            cell.textLabel?.text = "No Items Added Yet"
+        guard let item = todoItems?[indexPath.row] else{
+            fatalError("Item is nil")
         }
+        
+        guard let color = UIColor(hexString: selectedCategory!.backgroundColor)?.darken(byPercentage: CGFloat(indexPath.row) / CGFloat(todoItems!.count)) else{
+            fatalError("Color cannot be darken because its nil")
+        }
+        
+        let constrastColor = ContrastColorOf(color, returnFlat: true)
+        
+        cell.textLabel?.text = item.title
+        cell.accessoryType = item.done ? .checkmark : .none
+        cell.tintColor = constrastColor
+        cell.backgroundColor = color
+        cell.textLabel?.textColor = constrastColor
 
         return cell
     }

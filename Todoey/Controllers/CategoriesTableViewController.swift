@@ -9,6 +9,7 @@
 import UIKit
 import CoreData
 import RealmSwift
+import ChameleonFramework
 
 class CategoriesTableViewController: SwipeTableViewController {
     
@@ -20,6 +21,10 @@ class CategoriesTableViewController: SwipeTableViewController {
         super.viewDidLoad()
         
         loadCategories()
+        
+        tableView.separatorStyle = .none
+        
+        tableView.rowHeight = 70
     }
 
     // MARK: - Table view data source
@@ -30,7 +35,17 @@ class CategoriesTableViewController: SwipeTableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
-        cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Added Yet"
+        guard let category = self.categories?[indexPath.row] else{
+            fatalError("Categories are nil")
+        }
+        
+        guard let color = UIColor(hexString: category.backgroundColor) else{
+            fatalError("Color does not exist")
+        }
+        
+        cell.textLabel?.text = category.name
+        cell.backgroundColor = color        
+        cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
         
         return cell
     }
@@ -47,7 +62,7 @@ class CategoriesTableViewController: SwipeTableViewController {
             let destinationVC = segue.destination as! TodoTableViewController
             
             if let indexPath = tableView.indexPathForSelectedRow{
-                destinationVC.selectedCategory = self.categories?[indexPath.row] 
+                destinationVC.selectedCategory = self.categories?[indexPath.row]
             }
         }
     }
@@ -96,6 +111,7 @@ class CategoriesTableViewController: SwipeTableViewController {
             
             let newCategory = Category()
             newCategory.name = textField.text! != "" ? textField.text! : "New Category"
+            newCategory.backgroundColor = UIColor.randomFlat.hexValue()
             
             self.save(category: newCategory)
         }
