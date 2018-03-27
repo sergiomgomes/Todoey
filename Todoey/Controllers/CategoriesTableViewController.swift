@@ -47,6 +47,10 @@ class CategoriesTableViewController: SwipeTableViewController {
         cell.backgroundColor = color        
         cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
         
+        //add long gesture recognize
+        let longGesture = UILongPressGestureRecognizer(target: self, action: #selector(longTap(_:)))
+        cell.addGestureRecognizer(longGesture)
+        
         return cell
     }
 
@@ -103,25 +107,54 @@ class CategoriesTableViewController: SwipeTableViewController {
     }
     
     @IBAction func addCategory(_ sender: UIBarButtonItem) {
-        var textField = UITextField()
-        
-        let alert = UIAlertController(title: "Add New Category", message: "", preferredStyle: .alert)
-        
-        let action = UIAlertAction(title: "Add Category", style: .default) { (actionResult) in
+        setupInputPopUp(
+            alertControllerTitle: "Add New Category",
+            alertActionTitle: "Add Category",
+            alertPlaceholder: "Create New Item",
+            currentText: "",
+            saveAction: {
+                (categoryText) in
+                let newCategory = Category()
+                newCategory.name = categoryText != "" ? categoryText : "New Category"
+                newCategory.backgroundColor = UIColor.randomFlat.hexValue()
+                
+                self.save(category: newCategory)
+        })
+    }
+    
+    @objc func longTap(_ sender: UIGestureRecognizer){
+        print("Long tap")
+        if sender.state == UIGestureRecognizerState.began {
+            print("UIGestureRecognizerStateEnded")
             
-            let newCategory = Category()
-            newCategory.name = textField.text! != "" ? textField.text! : "New Category"
-            newCategory.backgroundColor = UIColor.randomFlat.hexValue()
+            let longPressedLocation = sender.location(in: self.tableView)
             
-            self.save(category: newCategory)
+            guard let pressedIndexPath = self.tableView.indexPathForRow(at: longPressedLocation) else{
+                fatalError("Index Path at location pressed does not exist")
+            }
+            
+            guard let category = self.categories?[pressedIndexPath.row] else {
+                fatalError("Non existing item!")
+            }
+            
+            setupInputPopUp(
+                alertControllerTitle: "Edit Todoey Category",
+                alertActionTitle: "Edit Category",
+                alertPlaceholder: "",
+                currentText: category.name,
+                saveAction: {
+                    (categoryText) in
+                    
+                    do{
+                        try self.realm.write {
+                            category.name = categoryText
+                        }
+                    }catch{
+                        print("Error editing category: \(error)")
+                    }
+                    
+                    self.tableView.reloadData()
+            })
         }
-        
-        alert.addTextField { (alertTextField) in
-            alertTextField.placeholder = "Create New Category"
-            textField = alertTextField
-        }
-        
-        alert.addAction(action)
-        self.present(alert, animated: true, completion: nil)
     }
 }

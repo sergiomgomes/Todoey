@@ -93,6 +93,10 @@ class TodoTableViewController: SwipeTableViewController {
         cell.tintColor = constrastColor
         cell.backgroundColor = color
         cell.textLabel?.textColor = constrastColor
+        
+        //add long gesture recognize
+        let longGesture = UILongPressGestureRecognizer(target: self, action: #selector(longTap(_:)))
+        cell.addGestureRecognizer(longGesture)
 
         return cell
     }
@@ -133,26 +137,54 @@ class TodoTableViewController: SwipeTableViewController {
     }
     
     @IBAction func addTodoItem(_ sender: UIBarButtonItem) {
-        
-        var textField = UITextField()
-        
-        let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
-        
-        let action = UIAlertAction(title: "Add Item", style: .default) { (actionResult) in
-
-            let newItem = Item()
-            newItem.title = textField.text! != "" ? textField.text! : "New Item"
+        setupInputPopUp(
+            alertControllerTitle: "Add New Todoey Item",
+            alertActionTitle: "Add Item",
+            alertPlaceholder: "Create New Item",
+            currentText: "",
+            saveAction: {
+                (itemText) in
+                let newItem = Item()
+                newItem.title = itemText != "" ? itemText : "New Item"
+                
+                self.save(item: newItem)
+        })
+    }
+    
+    @objc func longTap(_ sender: UIGestureRecognizer){
+        print("Long tap")
+        if sender.state == UIGestureRecognizerState.began {
+            print("UIGestureRecognizerStateEnded")
             
-            self.save(item: newItem)
+            let longPressedLocation = sender.location(in: self.tableView)
+            
+            guard let pressedIndexPath = self.tableView.indexPathForRow(at: longPressedLocation) else{
+                fatalError("Index Path at location pressed does not exist")
+            }
+            
+            guard let item = self.todoItems?[pressedIndexPath.row] else {
+                fatalError("Non existing item!")
+            }
+            
+            setupInputPopUp(
+                alertControllerTitle: "Edit Todoey Item",
+                alertActionTitle: "Edit Item",
+                alertPlaceholder: "",
+                currentText: item.title,
+                saveAction: {
+                    (itemText) in
+                    
+                    do{
+                        try self.realm.write {
+                            item.title = itemText
+                        }
+                    }catch{
+                        print("Error editing item: \(error)")
+                    }
+                    
+                    self.tableView.reloadData()
+            })
         }
-        
-        alert.addTextField { (alertTextField) in
-            alertTextField.placeholder = "Create New Item"
-            textField = alertTextField
-        }
-        
-        alert.addAction(action)
-        self.present(alert, animated: true, completion: nil)
     }
     
     //MARK: - Model Manipulation Section
@@ -173,7 +205,7 @@ class TodoTableViewController: SwipeTableViewController {
     
     func loadTodoItems(){
         
-        self.todoItems = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
+        self.todoItems = selectedCategory?.items.sorted(byKeyPath: "dateCreated", ascending: true)
 
         tableView.reloadData()
     }

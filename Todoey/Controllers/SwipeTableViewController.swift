@@ -38,4 +38,28 @@ class SwipeTableViewController: UITableViewController {
     func delete(at indexPath: IndexPath){
     
     }
+    
+    func setupInputPopUp(alertControllerTitle: String,
+                         alertActionTitle: String,
+                         alertPlaceholder: String,
+                         currentText: String?,
+                         saveAction: @escaping (String) -> Void){
+        let alert = UIAlertController(title: alertControllerTitle, message: "", preferredStyle: .alert)
+        
+        var textField = UITextField()
+        textField.text = currentText
+        
+        let action = UIAlertAction(title: alertActionTitle, style: .default) { (actionResult) in
+            saveAction(textField.text ?? "")
+        }
+        
+        alert.addTextField { (alertTextField) in
+            alertTextField.placeholder = alertPlaceholder
+            alertTextField.text = textField.text
+            textField = alertTextField
+        }
+        
+        alert.addAction(action)
+        self.present(alert, animated: true, completion: nil)
+    }
 }
